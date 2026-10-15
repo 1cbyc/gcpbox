@@ -22,3 +22,15 @@ output "database_connection_name" {
   description = "Cloud SQL connection name used by the Cloud Run volume."
   value       = google_sql_database_instance.app.connection_name
 }
+
+output "capacity" {
+  description = "Effective Cloud Run capacity controls for connection-budget and cost review."
+  value = {
+    min_instances       = var.min_instances
+    max_instances       = var.max_instances
+    request_concurrency = var.request_concurrency
+    cpu                 = var.cpu
+    memory              = var.memory
+    timeout_seconds     = var.request_timeout_seconds
+  }
+}

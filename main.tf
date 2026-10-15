@@ -128,8 +128,8 @@ resource "google_cloud_run_v2_service" "app" {
   template {
     service_account                  = google_service_account.app.email
     labels                           = local.labels
-    timeout                          = "30s"
-    max_instance_request_concurrency = 80
+    timeout                          = "${var.request_timeout_seconds}s"
+    max_instance_request_concurrency = var.request_concurrency
 
     scaling {
       min_instance_count = var.min_instances
@@ -145,8 +145,8 @@ resource "google_cloud_run_v2_service" "app" {
 
       resources {
         limits = {
-          cpu    = "1"
-          memory = "512Mi"
+          cpu    = tostring(var.cpu)
+          memory = var.memory
         }
         cpu_idle          = true
         startup_cpu_boost = false
@@ -176,7 +176,7 @@ resource "google_cloud_run_v2_service" "app" {
         period_seconds        = 5
         timeout_seconds       = 2
         http_get {
-          path = "/health/live"
+          path = var.startup_probe_path
           port = var.container_port
         }
       }
@@ -185,7 +185,7 @@ resource "google_cloud_run_v2_service" "app" {
         period_seconds    = 10
         timeout_seconds   = 2
         http_get {
-          path = "/health/live"
+          path = var.liveness_probe_path
           port = var.container_port
         }
       }
@@ -215,4 +215,11 @@ resource "google_cloud_run_v2_service" "app" {
     google_project_iam_member.cloudsql_client,
     google_project_iam_member.cloudsql_instance_user,
   ]
+
+  lifecycle {
+    precondition {
+      condition     = var.min_instances <= var.max_instances
+      error_message = "min_instances must not exceed max_instances."
+    }
+  }
 }

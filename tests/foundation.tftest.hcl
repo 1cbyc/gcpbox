@@ -35,6 +35,32 @@ run "secure_foundation" {
     condition     = google_cloud_run_v2_service.app.template[0].vpc_access[0].egress == "PRIVATE_RANGES_ONLY"
     error_message = "Only private ranges should use VPC egress."
   }
+  assert {
+    condition     = google_cloud_run_v2_service.app.template[0].containers[0].startup_probe[0].http_get[0].path == "/health/live"
+    error_message = "The compatibility startup path must remain stable by default."
+  }
+}
+
+run "bounded_capacity" {
+  command = plan
+  variables {
+    min_instances           = 2
+    max_instances           = 8
+    request_concurrency     = 24
+    cpu                     = 2
+    memory                  = "1Gi"
+    request_timeout_seconds = 15
+    startup_probe_path      = "/health/ready"
+  }
+
+  assert {
+    condition     = output.capacity.max_instances == 8 && output.capacity.request_concurrency == 24
+    error_message = "Capacity output must expose the effective scaling boundary."
+  }
+  assert {
+    condition     = google_cloud_run_v2_service.app.template[0].containers[0].startup_probe[0].http_get[0].path == "/health/ready"
+    error_message = "The startup probe must use the consumer readiness path."
+  }
 }
 
 run "reject_mutable_image" {
@@ -47,6 +73,33 @@ run "reject_invalid_scaling" {
   command = plan
   variables { max_instances = 0 }
   expect_failures = [var.max_instances]
+}
+
+run "reject_inverted_scaling" {
+  command = plan
+  variables {
+    min_instances = 3
+    max_instances = 2
+  }
+  expect_failures = [google_cloud_run_v2_service.app]
+}
+
+run "reject_invalid_concurrency" {
+  command = plan
+  variables { request_concurrency = 0 }
+  expect_failures = [var.request_concurrency]
+}
+
+run "reject_invalid_cpu" {
+  command = plan
+  variables { cpu = 3 }
+  expect_failures = [var.cpu]
+}
+
+run "reject_probe_query" {
+  command = plan
+  variables { startup_probe_path = "/health/ready?deep=true" }
+  expect_failures = [var.startup_probe_path]
 }
 
 run "reject_privileged_port" {

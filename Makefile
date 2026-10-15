@@ -15,5 +15,6 @@ test:
 example:
 	$(TERRAFORM) -chdir=examples/consumer init -backend=false
 	$(TERRAFORM) -chdir=examples/consumer validate
+	$(TERRAFORM) -chdir=examples/consumer test
 
 ci: check test example

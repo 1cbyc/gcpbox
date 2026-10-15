@@ -90,6 +90,66 @@ variable "max_instances" {
   }
 }
 
+variable "request_concurrency" {
+  description = "Maximum concurrent requests per instance. Size this with the database connection pool."
+  type        = number
+  default     = 80
+  validation {
+    condition     = var.request_concurrency >= 1 && var.request_concurrency <= 1000 && floor(var.request_concurrency) == var.request_concurrency
+    error_message = "request_concurrency must be an integer from 1 through 1000."
+  }
+}
+
+variable "cpu" {
+  description = "Cloud Run CPU limit expressed as a whole CPU count."
+  type        = number
+  default     = 1
+  validation {
+    condition     = contains([1, 2, 4, 6, 8], var.cpu)
+    error_message = "cpu must be one of 1, 2, 4, 6, or 8."
+  }
+}
+
+variable "memory" {
+  description = "Cloud Run memory limit using a supported binary unit."
+  type        = string
+  default     = "512Mi"
+  validation {
+    condition     = can(regex("^[1-9][0-9]*(Mi|Gi)$", var.memory))
+    error_message = "memory must be a positive integer followed by Mi or Gi."
+  }
+}
+
+variable "request_timeout_seconds" {
+  description = "Maximum request duration before Cloud Run terminates the request."
+  type        = number
+  default     = 30
+  validation {
+    condition     = var.request_timeout_seconds >= 1 && var.request_timeout_seconds <= 3600 && floor(var.request_timeout_seconds) == var.request_timeout_seconds
+    error_message = "request_timeout_seconds must be an integer from 1 through 3600."
+  }
+}
+
+variable "startup_probe_path" {
+  description = "HTTP path that must prove the instance can safely receive traffic."
+  type        = string
+  default     = "/health/live"
+  validation {
+    condition     = can(regex("^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,255}$", var.startup_probe_path))
+    error_message = "startup_probe_path must be an absolute path of at most 256 characters without whitespace, query, or fragment."
+  }
+}
+
+variable "liveness_probe_path" {
+  description = "HTTP path that reports only whether the process can make progress."
+  type        = string
+  default     = "/health/live"
+  validation {
+    condition     = can(regex("^/[A-Za-z0-9._~!$&'()*+,;=:@%/-]{0,255}$", var.liveness_probe_path))
+    error_message = "liveness_probe_path must be an absolute path of at most 256 characters without whitespace, query, or fragment."
+  }
+}
+
 variable "container_port" {
   description = "Application HTTP port."
   type        = number
